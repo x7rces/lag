@@ -1,0 +1,99 @@
+--// Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+--// Main Panel
+local screen = Instance.new("ScreenGui", game:GetService("CoreGui"))
+screen.Name = "FPSDevourerPanel"
+
+local main = Instance.new("Frame", screen)
+main.Size = UDim2.new(0, 200, 0, 100)
+main.Position = UDim2.new(0.5, -100, 0.5, -50)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.BorderSizePixel = 0
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "FPS Devourer"
+title.TextColor3 = Color3.fromRGB(200, 200, 200)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+local toggleBtn = Instance.new("TextButton", main)
+toggleBtn.Size = UDim2.new(1, -20, 0, 30)
+toggleBtn.Position = UDim2.new(0, 10, 0, 40)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleBtn.Text = "Start"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.AutoButtonColor = true
+
+--// FPS Devourer Logic
+local FPSDevourer = {}
+do
+    FPSDevourer.running = false
+    FPSDevourer._stop = false
+    local TOOL_NAME = "Tung Bat"
+
+    local function equipTungBat()
+        local character = player.Character
+        local backpack = player:FindFirstChild("Backpack")
+        if not character or not backpack then return end
+        local tool = backpack:FindFirstChild(TOOL_NAME)
+        if tool then tool.Parent = character end
+    end
+
+    local function unequipTungBat()
+        local character = player.Character
+        local backpack = player:FindFirstChild("Backpack")
+        if not character or not backpack then return end
+        local tool = character:FindFirstChild(TOOL_NAME)
+        if tool then tool.Parent = backpack end
+    end
+
+    function FPSDevourer:Start()
+        if FPSDevourer.running then return end
+        FPSDevourer.running = true
+        FPSDevourer._stop = false
+
+        -- Ultra-fast spam every frame
+        FPSDevourer.conn = RunService.Heartbeat:Connect(function()
+            if FPSDevourer.running and not FPSDevourer._stop then
+                equipTungBat()
+                unequipTungBat()
+            end
+        end)
+    end
+
+    function FPSDevourer:Stop()
+        FPSDevourer.running = false
+        FPSDevourer._stop = true
+        if FPSDevourer.conn then
+            FPSDevourer.conn:Disconnect()
+            FPSDevourer.conn = nil
+        end
+        unequipTungBat()
+    end
+
+    player.CharacterAdded:Connect(function()
+        FPSDevourer:Stop()
+    end)
+end
+
+--// Toggle Button Logic
+toggleBtn.MouseButton1Click:Connect(function()
+    if FPSDevourer.running then
+        FPSDevourer:Stop()
+        toggleBtn.Text = "Start"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    else
+        FPSDevourer:Start()
+        toggleBtn.Text = "Stop"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    end
+end)
