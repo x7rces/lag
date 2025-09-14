@@ -3,7 +3,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local UserInputService = game:GetService("UserInputService")
 
--- ========== REMUEVE TODOOS ACESORIOS/ROPA AL EJECUTAR EL SCRIPT ==========
+-- ========== REMOVE ALL ACCESSORIES/CLOTHES ==========
 local function removeAllAccessoriesFromCharacter()
     local character = player.Character
     if not character then return end
@@ -66,7 +66,7 @@ do
         task.spawn(function()
             while self.running and not self._stop do
                 equipTungBat()
-                task.wait(0.01) -- 🔥 now 0.01
+                task.wait(0.01) -- 🔥 fastest safe delay
                 unequipTungBat()
                 task.wait(0.01)
             end
@@ -80,54 +80,120 @@ do
     end
 
     player.CharacterAdded:Connect(function()
-        self.running = false
-        self._stop = true
+        FPSDevourer.running = false
+        FPSDevourer._stop = true
     end)
 end
 
 -- ========== UI ==========
+-- remove old GUI
+local old = playerGui:FindFirstChild("DEVORADOR_DE_MUNDOS")
+if old then old:Destroy() end
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "DEVORADOR_DE_MUNDOS"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 200, 0, 80)
-main.Position = UDim2.new(0.5, -100, 0.5, -40)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Size = UDim2.new(0, 220, 0, 100)
+main.Position = UDim2.new(0.5, -110, 0.42, 0)
+main.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
+main.BorderSizePixel = 0
 main.Active = true
-main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
+-- drag support
+do
+    local dragging, dragInput, dragStart, startPos
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    main.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
+title.Size = UDim2.new(1, 0, 0, 32)
 title.Text = "DEVORADOR DE MUNDOS"
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
 
-local button = Instance.new("TextButton", main)
-button.Size = UDim2.new(1, -20, 0, 30)
-button.Position = UDim2.new(0, 10, 0, 40)
-button.Text = "Start"
-button.Font = Enum.Font.GothamBold
-button.TextSize = 16
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+-- helper: create toggle button
+local function makeToggleBtn(parent, label, y, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -20, 0, 36)
+    btn.Position = UDim2.new(0, 10, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    btn.Text = label
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 
--- toggle logic
-local running = false
-button.MouseButton1Click:Connect(function()
-    running = not running
-    if running then
-        button.Text = "Stop"
-        button.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
-        FPSDevourer:Start()
-    else
-        button.Text = "Start"
-        button.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-        FPSDevourer:Stop()
+    local state = false
+    local function updateVisual()
+        btn.BackgroundColor3 = state and Color3.fromRGB(50, 200, 60) or Color3.fromRGB(200, 60, 60)
+        btn.Text = state and (label .. " [ON]") or (label .. " [OFF]")
     end
+
+    local function toggle()
+        state = not state
+        updateVisual()
+        callback(state)
+    end
+
+    btn.MouseButton1Click:Connect(toggle)
+    updateVisual()
+
+    return btn, function(v)
+        state = v
+        updateVisual()
+        callback(state)
+    end
+end
+
+-- actual toggle for FPSDevourer
+local btnFPSDevourer, setFPSDevourerState = makeToggleBtn(
+    main,
+    "DEVORADOR DE MUNDOS",
+    40,
+    function(on)
+        if on then
+            FPSDevourer:Start()
+        else
+            FPSDevourer:Stop()
+        end
+    end
+)
+
+-- reset button OFF when respawn
+player.CharacterAdded:Connect(function()
+    setFPSDevourerState(false)
+    task.wait(0.2)
+    removeAllAccessoriesFromCharacter()
 end)
