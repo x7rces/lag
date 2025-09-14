@@ -170,7 +170,7 @@ local title = Instance.new('TextLabel', main)
 title.Name = 'Title'
 title.Size = UDim2.new(1, 0, 0, TITLE_HEIGHT)
 title.Position = UDim2.new(0, 0, 0, 0)
-title.Text = 'KILL FPS'
+title.Text = 'DEVORAME_ESTA'
 title.Font = Enum.Font.GothamBlack
 title.TextSize = TITLE_FONT_SIZE
 title.BackgroundTransparency = 1
@@ -245,7 +245,7 @@ end
 
 local btnFPSDevourer, setFPSDevourerState = makeToggleBtn(
     main,
-    'FPS KILLER',
+    'DEVORADOR DE MUNDOS',
     BTN_Y0,
     function(on)
         if on then
