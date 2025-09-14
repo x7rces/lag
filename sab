@@ -1,199 +1,25 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
--- ========== REMOVE ALL ACCESSORIES/CLOTHES ==========
-local function removeAllAccessoriesFromCharacter()
-    local character = player.Character
-    if not character then return end
-    for _, item in ipairs(character:GetChildren()) do
-        if item:IsA("Accessory")
-        or item:IsA("LayeredClothing")
-        or item:IsA("Shirt")
-        or item:IsA("ShirtGraphic")
-        or item:IsA("Pants")
-        or item:IsA("BodyColors")
-        or item:IsA("CharacterMesh") then
-            pcall(function() item:Destroy() end)
-        end
+-- Function to press keys 1-9
+local function pressKeys()
+    for i = 1, 9 do
+        local keyCode = Enum.KeyCode["One"]
+        if i == 2 then keyCode = Enum.KeyCode.Two
+        elseif i == 3 then keyCode = Enum.KeyCode.Three
+        elseif i == 4 then keyCode = Enum.KeyCode.Four
+        elseif i == 5 then keyCode = Enum.KeyCode.Five
+        elseif i == 6 then keyCode = Enum.KeyCode.Six
+        elseif i == 7 then keyCode = Enum.KeyCode.Seven
+        elseif i == 8 then keyCode = Enum.KeyCode.Eight
+        elseif i == 9 then keyCode = Enum.KeyCode.Nine end
+
+        -- Simulate key press
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
     end
 end
 
-player.CharacterAdded:Connect(function()
-    task.wait(0.2)
-    removeAllAccessoriesFromCharacter()
-end)
-
-if player.Character then
-    task.defer(removeAllAccessoriesFromCharacter)
+-- Loop every 0.01s
+while task.wait(0.01) do
+    pressKeys()
 end
-
--- ========== FPS DEVOURER ==========
-local FPSDevourer = {}
-do
-    FPSDevourer.running = false
-    local TOOL_NAME = "Tung Bat"
-
-    local function equipTungBat()
-        local character = player.Character
-        local backpack = player:FindFirstChild("Backpack")
-        if not character or not backpack then return false end
-        local tool = backpack:FindFirstChild(TOOL_NAME)
-        if tool then
-            tool.Parent = character
-            return true
-        end
-        return false
-    end
-
-    local function unequipTungBat()
-        local character = player.Character
-        local backpack = player:FindFirstChild("Backpack")
-        if not character or not backpack then return false end
-        local tool = character:FindFirstChild(TOOL_NAME)
-        if tool then
-            tool.Parent = backpack
-            return true
-        end
-        return false
-    end
-
-    function FPSDevourer:Start()
-        if self.running then return end
-        self.running = true
-        self._stop = false
-        task.spawn(function()
-            while self.running and not self._stop do
-                equipTungBat()
-                task.wait(0.01) -- 🔥 fastest safe delay
-                unequipTungBat()
-                task.wait(0.01)
-            end
-        end)
-    end
-
-    function FPSDevourer:Stop()
-        self.running = false
-        self._stop = true
-        unequipTungBat()
-    end
-
-    player.CharacterAdded:Connect(function()
-        FPSDevourer.running = false
-        FPSDevourer._stop = true
-    end)
-end
-
--- ========== UI ==========
--- remove old GUI
-local old = playerGui:FindFirstChild("DEVORADOR_DE_MUNDOS")
-if old then old:Destroy() end
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "DEVORADOR_DE_MUNDOS"
-gui.ResetOnSpawn = false
-gui.Parent = playerGui
-
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 220, 0, 100)
-main.Position = UDim2.new(0.5, -110, 0.42, 0)
-main.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
-main.BorderSizePixel = 0
-main.Active = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
-
--- drag support
-do
-    local dragging, dragInput, dragStart, startPos
-    main.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = main.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    main.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input == dragInput then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-end
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 32)
-title.Text = "DEVORADOR DE MUNDOS"
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-
--- helper: create toggle button
-local function makeToggleBtn(parent, label, y, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -20, 0, 36)
-    btn.Position = UDim2.new(0, 10, 0, y)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-    btn.Text = label
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
-    local state = false
-    local function updateVisual()
-        btn.BackgroundColor3 = state and Color3.fromRGB(50, 200, 60) or Color3.fromRGB(200, 60, 60)
-        btn.Text = state and (label .. " [ON]") or (label .. " [OFF]")
-    end
-
-    local function toggle()
-        state = not state
-        updateVisual()
-        callback(state)
-    end
-
-    btn.MouseButton1Click:Connect(toggle)
-    updateVisual()
-
-    return btn, function(v)
-        state = v
-        updateVisual()
-        callback(state)
-    end
-end
-
--- actual toggle for FPSDevourer
-local btnFPSDevourer, setFPSDevourerState = makeToggleBtn(
-    main,
-    "DEVORADOR DE MUNDOS",
-    40,
-    function(on)
-        if on then
-            FPSDevourer:Start()
-        else
-            FPSDevourer:Stop()
-        end
-    end
-)
-
--- reset button OFF when respawn
-player.CharacterAdded:Connect(function()
-    setFPSDevourerState(false)
-    task.wait(0.2)
-    removeAllAccessoriesFromCharacter()
-end)
